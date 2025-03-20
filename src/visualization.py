@@ -1,19 +1,17 @@
-import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
 import os
 
 
-def plot_price_with_indicators(df: pd.DataFrame, indicators: list = None, title: str = "Price with Indicators"):
-    """
-    График цены + выбранные индикаторы
-    """
+def plot_price_with_alerts(df, title="Price with Alerts"):
     plt.figure(figsize=(14, 7))
-    plt.plot(df.index, df["close"], label="Close Price", linewidth=1.5)
+    plt.plot(df.index, df["Close"], label="Close Price", color="gray")
 
-    if indicators:
-        for ind in indicators:
-            if ind in df.columns:
-                plt.plot(df.index, df[ind], label=ind)
+    buy_signals = df[df["alert"] == "BUY"]
+    sell_signals = df[df["alert"] == "SELL"]
+
+    plt.scatter(buy_signals.index, buy_signals["Close"], marker="^", color="green", label="BUY", zorder=5)
+    plt.scatter(sell_signals.index, sell_signals["Close"], marker="v", color="red", label="SELL", zorder=5)
 
     plt.title(title)
     plt.xlabel("Date")
@@ -24,42 +22,22 @@ def plot_price_with_indicators(df: pd.DataFrame, indicators: list = None, title:
     plt.show()
 
 
-def plot_macd(df: pd.DataFrame):
-    """
-    MACD-гистограмма и сигнальные линии.
-    """
-    plt.figure(figsize=(14, 5))
-    plt.plot(df.index, df["MACD"], label="MACD", color="blue")
-    plt.plot(df.index, df["Signal"], label="Signal", color="orange")
-    plt.bar(df.index, df["MACD_Hist"], label="Histogram", color="gray", alpha=0.4)
+def export_alerts_to_excel(df, filename="alerts_report.xlsx"):
+    os.makedirs("reports", exist_ok=True)
+    path = os.path.join("reports", filename)
 
-    plt.title("MACD")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # Сигналы
+    signals = df[df["alert"] != "NONE"]
 
+    # Доходность стратегии
+    df = df.copy()
+    df["position"] = df["alert"].map({"BUY": 1, "SELL": -1, "NONE": 0}).ffill().fillna(0)
+    df["returns"] = df["Close"].pct_change()
+    df["strategy"] = df["returns"] * df["position"].shift(1)
+    df["equity"] = (1 + df["strategy"]).cumprod()
 
-def export_report(df: pd.DataFrame, filename: str = "report.xlsx"):
-    """
-    Сохранение результата анализа в Excel-отчёт.
-    """
-    output_dir = "reports"
-    os.makedirs(output_dir, exist_ok=True)
-    filepath = os.path.join(output_dir, filename)
-    df.to_excel(filepath)
-    print(f"[INFO] Отчёт сохранён: {filepath}")
+    with pd.ExcelWriter(path) as writer:
+        df.to_excel(writer, sheet_name="Full Data")
+        signals.to_excel(writer, sheet_name="Alerts")
 
-
-if __name__ == "__main__":
-    from preprocessing import load_data_yahoo, preprocess_data
-    from analysis import sma, ema, macd
-
-    df = preprocess_data(load_data_yahoo("TSLA"))
-    df["SMA_20"] = sma(df, 20)
-    df["EMA_20"] = ema(df, 20)
-    df = macd(df)
-
-    plot_price_with_indicators(df, ["SMA_20", "EMA_20"])
-    plot_macd(df)
-    export_report(df)
+    print(f"Отчёт сохранён: {path}")
