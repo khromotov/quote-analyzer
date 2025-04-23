@@ -17,25 +17,6 @@
 
 ---
 
-## Структура проекта
-
-```
-quote-analyzer/
-├── src/                # Исходный код модулей
-│   ├── models.py       # Индикаторы, фильтры, сигналы
-│   ├── preprocessing.py
-│   ├── visualisation.py
-│   └── run_strategy.py # Основной скрипт запуска
-│
-├── tests/              # Тесты (unittest)
-│   └── test_pipeline.py
-│
-├── reports/            # Генерируемые отчёты
-└── README.md
-```
-
----
-
 ## Установка и запуск
 
 ### 1. Клонирование проекта
