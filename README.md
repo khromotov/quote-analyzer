@@ -1,7 +1,3 @@
-tests/test_pipeline.py запускает тест всей программы
-
-
-
 ```markdown
 # Quote Analyzer
 
